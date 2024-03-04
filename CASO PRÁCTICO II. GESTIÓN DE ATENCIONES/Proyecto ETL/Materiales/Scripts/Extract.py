@@ -19,10 +19,10 @@ def ImportDataFromExcel(filepath: str, sheet: str = 'Hoja1') -> pl.DataFrame:
     try:
         # Leer el archivo Excel y especificar el tipo de dato para las fechas
         df = pl.read_excel(filepath, sheet_name = sheet)
-        # Convertir columnas de fecha desde la importación (después de la carga)
+        # Convertir las columnas de fecha, asumiendo formato "YYYY-MM-DD"
         df = df.with_columns([
-            pl.col("Fecha Creacion").str.strptime(pl.Date, "%d-%m-%Y", strict = False),
-            pl.col("Fecha Cierre").str.strptime(pl.Date, "%d-%m-%Y", strict = False)
+            pl.col("Fecha Creacion").str.strptime(pl.Date, "%Y-%m-%d", strict=False),
+            pl.col("Fecha Cierre").str.strptime(pl.Date, "%Y-%m-%d", strict=False)
         ])
         return df
     except Exception as e:
@@ -47,13 +47,27 @@ def ImportDataFromPostgreSQL(tabla: str, columnas: list) -> pl.DataFrame:
         return None
     
     try:
-        # Crear la consulta SQL
-        sql_query = f"SELECT {', '.join(columnas)} FROM {tabla}"
-        # Ejecutar la consulta y cargar los datos en un DataFrame de Polars
-        df = pl.read_sql(sql_query, conn)
+        cursor = conn.cursor()
+        
+        # Asegurarse de que los nombres de las columnas y la tabla estén entre comillas dobles
+        columnas_citadas = [f'"{col}"' for col in columnas]
+        tabla_citada = f'"{tabla}"'
+        
+        # Crear la consulta SQL con identificadores entre comillas dobles
+        sql_query = f'SELECT {", ".join(columnas_citadas)} FROM {tabla_citada}'
+        
+        cursor.execute(sql_query)
+        
+        # Obtener los datos y convertirlos a un DataFrame de Polars
+        column_names = [desc[0] for desc in cursor.description]
+        data = cursor.fetchall()
+        
+        df = pl.DataFrame(data, schema=column_names)
         return df
     except Exception as e:
         print(f"Error al importar datos de PostgreSQL: {e}")
         return None
     finally:
-        close_connection(conn)
+        if conn:
+            conn.close()
+            

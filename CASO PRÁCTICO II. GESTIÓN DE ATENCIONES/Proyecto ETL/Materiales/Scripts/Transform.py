@@ -42,16 +42,13 @@ def CreateDimension(data: pl.DataFrame, *args):
     Retorna el dataframe transformado  
     
     """
-    try:
-        # Seleccionar las columnas especificadas
-        selected_columns = data.select(list(args))
-        # Eliminar duplicados basados en la primera columna especificada
-        result = selected_columns.unique(subset=[args[0]])
-        return result
-    except Exception as e:
-        print(f"Error al crear la dimensión: {e}")
-        # Retorna el dataframe sin cambios si ocurre un error
-        return data  
+    # Selecciona las columnas especificadas.
+    selected_data = data.select(list(args))
+    
+    # Elimina duplicados basándose en la primera columna especificada.
+    transformed_data = selected_data.unique(subset=[args[0]])
+    
+    return transformed_data
 
 def CreateFactTable(Atenciones: pl.DataFrame, Proveedor: pl.DataFrame, Estado: pl.DataFrame, TipoAtencion: pl.DataFrame) -> pl.DataFrame:
     
@@ -62,18 +59,16 @@ def CreateFactTable(Atenciones: pl.DataFrame, Proveedor: pl.DataFrame, Estado: p
     El método retorna el dataframe consolidado.
     """
     try:
-        # Realizar los joins necesarios
-        # Ajusta las columnas de join y las columnas a seleccionar según tu esquema de datos
+        # Los joins se deben ajustar para usar los nombres de columnas correctos. Aquí se asume que Atenciones tiene columnas que se refieren a IDs o nombres que pueden mapearse a Proveedor, Estado, y TipoAtencion
         df = (Atenciones
-              .join(Proveedor, on='proveedor_id', how='left')  # Ajustar las columnas de join
-              .join(Estado, on='estado_id', how='left')        # Ajustar las columnas de join
-              .join(TipoAtencion, on='tipo_atencion_id', how='left')  # Ajustar las columnas de join
+              .join(Proveedor, on='Proveedor', how='left')  # Asegúrate de que 'ProveedorID' sea el nombre correcto
+              .join(Estado, on='Estado', how='left')        # Asegúrate de que 'EstadoID' sea el nombre correcto
+              .join(TipoAtencion, on='TipoAtencion', how='left')  # Asegúrate de que 'TipoAtencionID' sea el nombre correcto
              )
         
         # Seleccionar las columnas necesarias para la tabla de hechos
-        # Este es un ejemplo genérico, ajusta las columnas según necesites
         fact_table = df.select([
-            'atencion_id', 'fecha_atencion', 'proveedor_nombre', 'estado_descripcion', 'tipo_atencion_descripcion'
+            'TicketID', 'EstadoID', "TipoAtencionID", "FechaCreacion", "FechaCierre", "AgenciaID", "ItemID", "ProveedorID"
             # Añade o quita columnas según sea necesario
         ])
         
